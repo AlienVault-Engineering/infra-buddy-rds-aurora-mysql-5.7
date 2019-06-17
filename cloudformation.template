@@ -284,7 +284,70 @@
           }
         ]
       }
+    },
+    "RdsInstance1DNS" : {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : {"Fn::Join":
+        [ "",
+          [
+            { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} },
+            "."
+          ]
+        ]
+        },
+        "Name" : {"Fn::Join":
+                [ "",
+                  [
+                    {"Fn::Sub": "${Environment}-${Application}-db-1."},
+                    { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} }
+                  ]
+                ]
+                }
+        ,
+        "Type" : "CNAME",
+        "TTL" : "900",
+        "ResourceRecords" : [
+          { "Fn::GetAtt": [
+            "RdsDbInstance1",
+            "Endpoint.Address"
+          ]
+          }
+        ]
+      }
+    },
+    "RdsInstance2DNS" : {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : {"Fn::Join":
+        [ "",
+          [
+            { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} },
+            "."
+          ]
+        ]
+        },
+        "Name" : {"Fn::Join":
+                [ "",
+                  [
+                    {"Fn::Sub": "${Environment}-${Application}-db-2."},
+                    { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} }
+                  ]
+                ]
+                }
+        ,
+        "Type" : "CNAME",
+        "TTL" : "900",
+        "ResourceRecords" : [
+          { "Fn::GetAtt": [
+            "RdsDbInstance2",
+            "Endpoint.Address"
+          ]
+          }
+        ]
+      }
     }
+
   },
   "Outputs": {
     "RdsCluster": {
