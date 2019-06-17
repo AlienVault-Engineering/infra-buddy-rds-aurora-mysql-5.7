@@ -1,0 +1,402 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "RDS Aurora Infrastructure",
+  "Parameters": {
+    "StackName": {
+      "Description": "Logical name (environment-application-role) for this CF stack",
+      "Type": "String"
+    },"Environment": {
+      "Description": "Logical name (environment) for this CF stack",
+      "Type": "String"
+    },"Application": {
+      "Description": "Logical name (Application) for this CF stack",
+      "Type": "String"
+    },
+    "VPCStack": {
+      "Description": "CF stack name for your existing Virtual Private Cloud",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "Description": "The EC2 instance type to use",
+      "Type": "String",
+      "Default": "db.t2.medium",
+      "AllowedValues": [
+        "db.t2.small",
+        "db.t2.medium",
+        "db.r3.large",
+        "db.r3.xlarge",
+        "db.r3.2xlarge",
+        "db.r3.4xlarge",
+        "db.r3.8xlarge",
+        "db.r4.large",
+        "db.r4.xlarge",
+        "db.r4.2xlarge",
+        "db.r4.4xlarge",
+        "db.r4.8xlarge",
+        "db.r4.16xlarge"
+
+      ],
+      "ConstraintDescription": "Must be a valid EC2 instance type."
+    },
+    "MasterUsername": {
+      "Description": "Master database username",
+      "Type": "String"
+    },
+    "MasterPassword": {
+      "Description": "Master database password",
+      "Type": "String",
+      "NoEcho": true
+    },
+    "DatabaseName": {
+      "Description": "Database name",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "RdsDbCluster": {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties": {
+        "Engine": "aurora-mysql",
+        "EngineVersion": "5.7",
+        "DatabaseName": {
+          "Ref": "DatabaseName"
+        },
+        "MasterUsername": {
+          "Ref": "MasterUsername"
+        },
+        "MasterUserPassword": {
+          "Ref": "MasterPassword"
+        },
+        "Port": "3306",
+        "BackupRetentionPeriod": "7",
+        "PreferredBackupWindow": "05:19-06:19",
+        "PreferredMaintenanceWindow": "sat:06:20-sat:07:50",
+        "DBSubnetGroupName": {
+          "Ref": "RdsDbSubnetGroup"
+        },
+        "VpcSecurityGroupIds": [
+          {
+            "Ref": "RdsSecurityGroup"
+          }
+        ]
+      }
+    },
+    "RdsDbInstance1": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": {
+          "Ref": "InstanceType"
+        },
+        "DBInstanceIdentifier": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsDbInstance1"
+            ]
+          ]
+        },
+        "DBClusterIdentifier" : {
+          "Ref" : "RdsDbCluster"
+        },
+        "Engine": "aurora",
+        "DBSubnetGroupName": {
+          "Ref": "RdsDbSubnetGroup"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "StackName"
+                  },
+                  "-RdsDbInstance1"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RdsDbInstance2": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBInstanceClass": {
+          "Ref": "InstanceType"
+        },
+        "DBInstanceIdentifier": {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsDbInstance2"
+            ]
+          ]
+        },
+        "DBClusterIdentifier" : {
+          "Ref" : "RdsDbCluster"
+        },
+        "Engine": "aurora",
+        "DBSubnetGroupName": {
+          "Ref": "RdsDbSubnetGroup"
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "StackName"
+                  },
+                  "-RdsDbInstance2"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RdsDbSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "RDS Subnet Group",
+        "SubnetIds": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStack}-SubnetAPriv"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStack}-SubnetBPriv"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStack}-SubnetCPriv"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "StackName"
+                  },
+                  "-RdsDbSubnetGroup"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "RdsSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Created from the RDS Management Console",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${VPCStack}-VPC"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  {
+                    "Ref": "StackName"
+                  },
+                  "-RdsSecurityGroup"
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "DBSecurityIngressmySQL": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "RdsSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": "3306",
+        "ToPort": "3306",
+        "CidrIp": "10.0.0.0/16"
+      }
+    },
+    "DBSecurityEgress": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "RdsSecurityGroup"
+        },
+        "IpProtocol": "-1",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "RdsPrimaryDNS" : {
+      "Type" : "AWS::Route53::RecordSet",
+      "Properties" : {
+        "HostedZoneName" : {"Fn::Join":
+        [ "",
+          [
+            { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} },
+            "."
+          ]
+        ]
+        },
+        "Name" : {"Fn::Join":
+                [ "",
+                  [
+                    {"Fn::Sub": "${Environment}-${Application}-db."},
+                    { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} }
+
+                  ]
+                ]
+                }
+        ,
+        "Type" : "CNAME",
+        "TTL" : "900",
+        "ResourceRecords" : [
+          { "Fn::GetAtt": [
+            "RdsDbCluster",
+            "Endpoint.Address"
+          ]
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "RdsCluster": {
+      "Value": {
+        "Ref": "RdsDbCluster"
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsDbCluster"
+            ]
+          ]
+        }
+      },
+      "Description": "Aurora RDS Cluster ID"
+    },
+    "RdsPrimaryDNS": {
+      "Value": {"Fn::Join":
+                      [ "",
+                        [
+                          {"Fn::Sub": "${Environment}-${Application}-db."},
+                          { "Fn::ImportValue": {"Fn::Sub": "${VPCStack}-PrimaryDomain"} }
+
+                        ]
+                      ]
+                      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsPrimaryDNS"
+            ]
+          ]
+        }
+      },
+      "Description": "DNS CNAME for Aurora RDS Endpoint"
+    },
+    "RdsClusterEndpointAddress": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RdsDbCluster",
+          "Endpoint.Address"
+        ]
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsDbCluster-EndpointAddress"
+            ]
+          ]
+        }
+      },
+      "Description": "Aurora RDS Cluster Internal Endpoint"
+    },
+    "RdsClusterEndpointPort": {
+      "Value": {
+        "Fn::GetAtt": [
+          "RdsDbCluster",
+          "Endpoint.Port"
+        ]
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsDbCluster-Port"
+            ]
+          ]
+        }
+      },
+      "Description": "Aurora RDS Cluster Port"
+    },
+    "RdsClusterSecurityGroup" : {
+      "Value" :  {
+        "Fn::GetAtt" : [
+          "RdsSecurityGroup",
+          "GroupId"
+        ]
+      },
+      "Export" : {
+        "Name" : {
+          "Fn::Join": [
+            "",
+            [
+              {
+                "Ref": "StackName"
+              },
+              "-RdsDbCluster-SecurityGroupID"
+            ]
+          ]
+        }
+      },
+      "Description" : "Aurora RDS CLuster Security Group ID"
+    }
+  }
+}
+

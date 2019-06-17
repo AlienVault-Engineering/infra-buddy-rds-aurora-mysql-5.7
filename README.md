@@ -1,2 +1,2 @@
-# infra-buddy-rds-aurora-mysql-5.7
-This is a specific fork of infra-buddy-rds-aurora to specify mysql 5.7 version
+# service-template-rds-aurora
+CloudFormation template for deploying a RDS aurora cluster. Optimized for use with infra-buddy.
