@@ -58,6 +58,7 @@
       "Properties": {
         "Engine": "aurora-mysql",
         "EngineVersion": "5.7",
+        "DBClusterParameterGroupName": "default.aurora5.7",
         "DatabaseName": {
           "Ref": "DatabaseName"
         },
